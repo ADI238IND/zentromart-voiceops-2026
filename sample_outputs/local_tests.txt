@@ -1,1 +1,22 @@
+test_calendar_skips_sunday_and_holiday (test_core.CoreTests.test_calendar_skips_sunday_and_holiday) ... ok
+test_coupon_clawback_and_rounding (test_core.CoreTests.test_coupon_clawback_and_rounding) ... ok
+test_empty_transcript_recovery_no_llm (test_core.CoreTests.test_empty_transcript_recovery_no_llm) ... ok
+test_natural_audio_order_and_ignore_non_audio (test_core.CoreTests.test_natural_audio_order_and_ignore_non_audio) ... ok
+test_new_sessions_are_isolated (test_core.CoreTests.test_new_sessions_are_isolated) ... ok
+test_proof_not_sent_to_model_or_history (test_core.CoreTests.test_proof_not_sent_to_model_or_history) ... ok
+test_section_metadata_and_catalog (test_core.CoreTests.test_section_metadata_and_catalog) ... ok
+test_spoken_and_native_digits (test_core.CoreTests.test_spoken_and_native_digits) ... ok
+test_ticket_dedup_and_redaction (test_core.CoreTests.test_ticket_dedup_and_redaction) ... ok
+test_ticket_failure_does_not_become_success (test_core.CoreTests.test_ticket_failure_does_not_become_success) ... ok
+test_two_failures_stay_locked_on_switch (test_core.CoreTests.test_two_failures_stay_locked_on_switch) ... ok
+test_unknown_evidence_is_filtered (test_core.CoreTests.test_unknown_evidence_is_filtered) ... ok
+test_unverified_lookup_never_discloses (test_core.CoreTests.test_unverified_lookup_never_discloses) ... ok
+test_verification_and_order_switch (test_core.CoreTests.test_verification_and_order_switch) ... ok
+test_batch_continues_after_failure_and_returns_nonzero (test_voice_batch.VoiceBatchTests.test_batch_continues_after_failure_and_returns_nonzero) ... ok
+test_explicit_gnani_model_and_output_check (test_voice_batch.VoiceBatchTests.test_explicit_gnani_model_and_output_check) ... ok
 
+----------------------------------------------------------------------
+Ran 16 tests in 1.110s
+
+OK
+Processed 3 files; 1 failed. Outputs: /tmp/tmpp3y_2ose/out

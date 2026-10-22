@@ -1,0 +1,17 @@
+{
+  "implementation": "source ready; local tests passed",
+  "tests_passed": 16,
+  "repo_url": "https://github.com/ADI238IND/zentromart-voiceops-2026",
+  "repo_visibility": "public",
+  "repo_source_uploaded": true,
+  "blocking_items": [
+    "Configure own LLM and Gnani API credentials locally",
+    "Run live evaluation and regenerate report",
+    "Record own genuine <=120-second voice demo and add successful audio outputs"
+  ],
+  "scores_claimed": {
+    "offline_tfidf_gold_evidence_recall": 0.6560283687943262,
+    "live_llm_answer_accuracy": null,
+    "live_gnani_voice_test": null
+  }
+}
