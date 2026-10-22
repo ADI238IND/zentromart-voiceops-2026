@@ -1,0 +1,8 @@
+# Python 3.11+. Gnani is the ONLY speech provider.
+gnani-vachana==0.8.1
+numpy>=1.26,<3
+scikit-learn>=1.5,<2
+streamlit>=1.40,<2
+reportlab>=4,<5
+
+pypdf>=5,<7

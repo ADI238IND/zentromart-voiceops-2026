@@ -1,0 +1,4 @@
+{
+  "observations": "Live evaluation and Gnani recording have not run because no API credentials were configured. No generated-answer accuracy is claimed.",
+  "next_fixes": "After a credentialed run, inspect wrong decisions, missed sources, native-language replies and tool arguments; record concrete failures here and regenerate the report."
+}
