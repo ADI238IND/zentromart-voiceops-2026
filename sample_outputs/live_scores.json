@@ -1,0 +1,30 @@
+{
+  "mode": "live LLM practice evaluation",
+  "question_count": 12,
+  "metrics_note": "Literal fact/forbidden checks are approximate; manually review semantic equivalence, dates, native language, and negation. Not organizer scores.",
+  "step1": {
+    "count": 12,
+    "decision_match": 0.25,
+    "literal_fact_pass": 0.3333333333333333,
+    "literal_forbidden_pass": 1.0,
+    "citation_recall": 0.0
+  },
+  "step2": {
+    "count": 12,
+    "decision_match": 0.6666666666666666,
+    "literal_fact_pass": 0.25,
+    "literal_forbidden_pass": 1.0,
+    "citation_recall": 0.5
+  },
+  "conversations": {
+    "count": 9,
+    "decision_match": 0.8888888888888888,
+    "literal_fact_pass": 0.6666666666666666,
+    "literal_forbidden_pass": 1.0,
+    "citation_recall": 0.8148148148148148,
+    "tool_name_sequence_match": 0.5555555555555556
+  },
+  "scope_note": "First 12 of 52 practice questions and first 2 of 23 conversations (9 turns), selected by dataset order. Wider attempts interrupted by service rate limits.",
+  "model": "gemini-3.1-flash-lite",
+  "embedding_backend": "tfidf"
+}
