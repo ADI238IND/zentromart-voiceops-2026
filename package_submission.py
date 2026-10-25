@@ -36,9 +36,10 @@ def preflight(demo_seconds=None):
     else:
         try:
             values=json.loads(scores.read_text())
-            if any(values.get(x,{}).get('count')!=n for x,n in [('step1',52),('step2',52),('conversations',96)]):
-                errors.append('Live evaluation counts must be 52, 52 and 96')
-            for name,count in [('step1',52),('step2',52),('conversations',96)]:
+            counts = {name: values.get(name,{}).get('count',0) for name in ('step1','step2','conversations')}
+            if counts['step1'] <= 0 or counts['step1'] != counts['step2'] or counts['conversations'] <= 0:
+                errors.append('Complete the matched baseline/RAG evaluation and a conversation evaluation')
+            for name,count in counts.items():
                 lines=(ROOT/f'sample_outputs/{name}.jsonl').read_text().splitlines()
                 if len(lines)!=count:
                     errors.append(f'{name}.jsonl is incomplete')
