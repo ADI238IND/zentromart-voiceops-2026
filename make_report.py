@@ -1,95 +1,61 @@
-"""Regenerate the four-page report using actual evaluation files, never invented scores."""
+"""Build a concise three-page report from measured results, without inventing scores."""
 import json
 from pathlib import Path
 from xml.sax.saxutils import escape
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_LEFT
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
 from reportlab.lib.pagesizes import A4
-
-ROOT = Path(__file__).resolve().parent
+from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,PageBreak,Table,TableStyle
+ROOT=Path(__file__).resolve().parent
 
 def main():
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='BodyClean',fontName='Helvetica',fontSize=10.5,leading=15,spaceAfter=10,textColor=colors.HexColor('#253449')))
-    styles.add(ParagraphStyle(name='Kicker',fontName='Helvetica-Bold',fontSize=10,leading=14,textColor=colors.HexColor('#087e8b'),spaceAfter=12))
-    styles['Title'].textColor = colors.HexColor('#112b45')
-    styles['Title'].fontSize = 27
-    styles['Title'].leading = 32
-    styles['Heading1'].fontSize=18
-    styles['Heading1'].leading=23
+    scores=json.loads((ROOT/'sample_outputs/live_scores.json').read_text())
+    style=getSampleStyleSheet()
+    style.add(ParagraphStyle(name='BodyClean',fontName='Helvetica',fontSize=10.5,leading=15,spaceAfter=10,textColor=colors.HexColor('#24384b')))
+    style['Title'].fontSize=26;style['Title'].leading=31;style['Title'].textColor=colors.HexColor('#102c47')
     story=[]
-    def p(text,style='BodyClean'):
-        story.append(Paragraph(text,styles[style]))
-    def heading(text):
-        p(text,'Heading1')
-        story.append(Spacer(1,8))
-    def table(data,widths):
-        rows=[[Paragraph(escape(str(c)),styles['BodyClean']) for c in r] for r in data]
-        t=Table(rows,colWidths=widths,hAlign='LEFT')
-        t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e7f3f5')),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),9),('RIGHTPADDING',(0,0),(-1,-1),9),('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7),('LINEBELOW',(0,0),(-1,0),1,colors.HexColor('#087e8b')),('LINEBELOW',(0,1),(-1,-1),0.3,colors.HexColor('#d9e1e7'))]))
-        story.append(t)
-    offline_path=ROOT/'sample_outputs/offline_retrieval.json'
-    offline=json.loads(offline_path.read_text()) if offline_path.exists() else {}
-    live_path=ROOT/'sample_outputs/live_scores.json'
-    live=json.loads(live_path.read_text()) if live_path.exists() else None
-    notes=json.loads((ROOT/'report_notes.json').read_text())
-    repo=(ROOT/'REPOSITORY_URL.txt').read_text(encoding='utf-8-sig').strip()
-    p('VOICEOPS 2026 / CAPSTONE REPORT','Kicker')
-    p('ZentroMart<br/>Support that listens','Title')
-    p('Aditya Singhal | GitHub: ADI238IND')
-    p('Implementation report - '+('live evaluation results included' if live else 'live validation pending'))
-    p('Repository: '+escape(repo or 'pending repository creation'))
-    p('Visibility: public. Source code, tests and instructions are included in the repository.')
-    heading('1. What was built')
-    p('A single Python customer-support agent handles typed messages and voice turns. Its answers are grounded in the supplied ZentroMart documents and synthetic records. A small Streamlit interface records and plays audio. A separate command accepts a folder of customer clips and writes a text reply, Gnani audio and evidence for each successful turn.')
-    table([['Step','Implementation'],['1 - Prompting','Text-only LLM API baseline with role, limits and AI disclosure; evaluated without company documents.'],['2 - Grounding','Section chunks, embeddings, cosine vector search, source metadata and product catalog retrieval.'],['3 - Conversation','Session memory, local caller verification, supplied mock order/ticket tools, calendar and refund helpers.'],['4 - Voice','Official Gnani SDK for both transcription and synthesis; shared agent brain and explicit Timbre model.']],[105,390])
-    story.append(PageBreak())
-    p('ARCHITECTURE / GROUNDING','Kicker')
-    heading('2. Retrieval and policy decisions')
-    p('Customer audio goes to Gnani STT. The resulting text enters the same agent used for chat. It retrieves company sections, checks structured records through tools when appropriate, generates a short grounded response, then sends only that reply to Gnani TTS. Other speech providers are never used.')
-    p('Markdown is split at each bracketed section ID. Each chunk retains its filename, document type, version, status and effective date. Products are indexed as products.csv:SKU records. The recommended backend uses configurable dense API embeddings stored in a normalized NumPy vector index. An offline TF-IDF embedding backend is included for diagnostics and environments without an embedding endpoint.')
-    p('Current policies outrank agent guides, help articles, FAQs and marketing. Low-authority topic hits pull relevant current policy neighbors into context. The old returns policy remains marked superseded; the prompt allows its use only when a current successor explicitly preserves an older case. Historical support logs are not indexed as policy authority.')
-    heading('3. Dates, memory and actions')
-    p('The fixed reference date is 20 October 2026. The calendar helper adds business days Monday through Saturday, skipping the supplied holidays; return windows use calendar days. The partial-refund helper calculates proportional coupon allocation, minimum-value clawback and half-up rupee rounding. The model must retrieve eligibility rules before using an amount.')
-    p('The application retains order and issue context within one caller session. Verification is done outside the model: one phone suffix or pincode is submitted directly to the supplied lookup tool, with at most two failed attempts per order per session. Proof is removed from model-visible history, trace and summaries. Switching orders clears the active verified record. Tools cannot execute a cancellation or refund; those actions must never be claimed.')
-    p('Human handover uses the supplied ticket tool. A successful handover claim requires created=true. Summaries include issue, intent, known order, checks and escalation reason. Repeated ticket creation for the same active issue is deduplicated. All order data and authentication are synthetic educational examples.')
-    story.append(PageBreak())
-    p('EVALUATION / REPRODUCIBILITY','Kicker')
-    heading('4. Measured results and comparison')
-    p('The supplied dataset validator passed: 9 CSVs, 21 knowledge documents, 1,000 orders, 1,783 order items, 52 questions and 23 conversations containing 96 customer turns. Sixteen local unittest cases passed, including verification gates and retry limits, session isolation, date arithmetic, coupon rounding, ticket failure, secret redaction, source metadata and batch failure continuation. Speech-related unit tests use doubles; they are not proof of a live Gnani call.')
-    score_rows=[['Measure','Result']]
-    score_rows.append(['Offline TF-IDF evidence recall',f"{100*offline.get('mean_evidence_recall',0):.1f}% on {offline.get('questions_with_gold',0)} questions with gold evidence (of 52). No generated-answer accuracy measured."])
-    if live:
-        for mode,label in [('step1','Step 1 prompt-only'),('step2','Step 2 RAG')]:
-            r=live[mode]
-            score_rows.append([label,f"{r['count']} questions; decision match {100*r['decision_match']:.1f}%; literal fact pass {100*r['literal_fact_pass']:.1f}%; forbidden-phrase pass {100*r['literal_forbidden_pass']:.1f}%."])
-        r=live['conversations']
-        score_rows.append(['Conversation evaluation',f"{r['count']} turns; decision match {100*r['decision_match']:.1f}%; tool-name sequence agreement {100*r['tool_name_sequence_match']:.1f}%."])
-    else:
-        score_rows.extend([['Step 1 prompt-only','NOT RUN - LLM credentials unavailable. No score claimed.'],['Step 2 RAG','NOT RUN - LLM/embedding credentials unavailable. No score claimed.'],['Conversations / real voice','NOT RUN live - requires configured accounts and personal recordings.']])
-    table(score_rows,[155,340])
-    story.append(Spacer(1,12))
-    p('The offline retrieval number is mean overlap with the gold section IDs, using the actual returned set (10 vector hits plus any authority neighbors). It is not a top-10 answer accuracy or organizer score. Five questions have no gold evidence and are omitted from that recall mean.')
-    p('The live evaluator compares the same 52 questions using fresh sessions, then processes the 96 conversation turns in order. Labels remain in the scoring process and are not passed to the agent. It saves raw generated replies, sources and tool events. Literal checks do not recognize every equivalent date, native-language phrase or negation; human semantic review is necessary. Tool-name checks do not prove argument correctness. No improvement over baseline is claimed before a live comparison.')
-    story.append(PageBreak())
-    p('LIMITATIONS / FINAL CHECKS','Kicker')
-    heading('5. What went wrong and what to fix')
-    p('Offline lexical retrieval missed some gold evidence: mean recall was 65.6%. Paraphrases, short follow-ups and multilingual text are harder for TF-IDF. The main configuration therefore uses dense multilingual-capable API embeddings; its real retrieval and answer quality must still be measured. Improve chunk/query coverage based on a full evaluation without inserting practice reference answers into runtime code.')
-    p(escape(notes['observations']))
-    p(escape(notes['next_fixes']))
-    p('Remaining risks include model mistakes in policy selection, incorrect or missing citations, tool argument errors, native-language phrasing and spoken-number recognition beyond individual English digit words/native digits. Prompt-based policy compliance and handover decisions need live adversarial evaluation. This is not a production authentication, refund or telephony system. No real PSTN calling integration is claimed; this capstone uses recorded voice turns.')
-    heading('6. Reproduce and finish')
-    p('Install requirements, import the supplied dataset locally, copy .env.example to .env and configure your own Gnani and text-model credentials. Run python evaluate.py, inspect the generated responses, update report_notes.json, then run python make_report.py. Run python run.py --input recordings --output outputs for the organizer batch interface.')
-    p('Before submitting, publish the public repository, place its actual URL in README and REPOSITORY_URL.txt, record a real demo.mp4 of at most two minutes, and include successful generated text, Gnani speech and source records under sample_outputs/audio/. The demo must show grounded Q&amp;A, a follow-up and a human handover or honest unknown. Package with python package_submission.py --team AdityaSinghal. Exclude the dataset, API keys, virtual environments and personal recordings.')
-    p('References: supplied VoiceOps 2026 capstone brief; dataset README, DATA_DICTIONARY and knowledge-base sections. Speech API integration follows the supplied brief and the official Gnani Python SDK: github.com/Gnani-AI-Mintlify/gnani-vachana. No bonus feature or live result is claimed without evidence.')
+    def p(text,name='BodyClean'):story.append(Paragraph(text,style[name]))
+    def h(text):p(text,'Heading2')
+    def table(rows,widths):
+        t=Table([[Paragraph(escape(str(c)),style['BodyClean']) for c in r] for r in rows],colWidths=widths,hAlign='LEFT')
+        t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e1f1f3')),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),8),('RIGHTPADDING',(0,0),(-1,-1),8),('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7),('LINEBELOW',(0,0),(-1,-1),0.4,colors.HexColor('#cbd7df'))]));story.append(t)
+    p('ZentroMart VoiceOps 2026','Title');p('Aditya Singhal | Capstone report | 25 October 2026')
+    p('Repository: https://github.com/ADI238IND/zentromart-voiceops-2026')
+    h('What I built')
+    p('A simple support agent that answers from ZentroMart documents and keeps the context of a conversation. The same Python agent handles typed chat and audio clips. Gnani handles all speech-to-text and text-to-speech. Gemini generates the text replies. No other speech provider is used.')
+    table([['Course step','Implementation'],['1. Prompting','A support role and limits, with a prompt-only baseline that receives no company documents.'],['2. RAG','Chunks preserve section IDs, version, status and effective date. TF-IDF vectors and cosine search retrieve policies and product rows. A dense embedding backend is also available, but was not used in the measured run.'],['3. Conversation','Session memory, verified mock order lookup, human ticket creation, date arithmetic and coupon-adjusted refund estimates.'],['4. Voice','Gnani input transcription, the shared agent, and Gnani Timbre v2.5 spoken replies. A Streamlit recorder and a folder-based runner are included.']],[105,390])
+    h('Grounding and caller checks')
+    p('Current policies outrank guides, help pages, FAQs and marketing. Superseded returns are reference material for the exception retained by the current policy. Historical support logs are not policy authority. The reference date is 20 October 2026. Business days are Monday to Saturday, excluding the supplied holidays; return windows use calendar days.')
+    p('The application passes verification proof directly to the supplied mock lookup tool, outside the LLM. It permits one retry, does not reveal the expected proof, and clears active order state when the order changes. Handover requires a successful create_ticket result. The tools cannot execute a cancellation, issue a refund or connect a real phone call.')
+    story.append(PageBreak());p('Measured practice results','Title')
+    n=scores['step1']['count'];turns=scores['conversations']['count']
+    p(f'This comparison uses the first {n} of 52 practice questions in dataset order, with the same questions for both modes. Conversation testing covers the first two of 23 conversations, containing {turns} customer turns. This scope was chosen before reviewing its scores after the broader run encountered provider rate limits. It is a sample, not a result for the complete practice set or unseen organizer tests.')
+    def pct(v):return 'n/a' if v is None else f'{100*v:.1f}%'
+    rows=[['Metric','Prompt-only','RAG']]
+    for key,label in [('decision_match','Decision agreement'),('literal_fact_pass','Literal required-fact pass'),('literal_forbidden_pass','Forbidden-phrase check pass'),('citation_recall','Mean cited-evidence recall')]:
+        rows.append([label,pct(scores['step1'][key]),pct(scores['step2'][key])])
+    table(rows,[225,135,135]);story.append(Spacer(1,14))
+    c=scores['conversations']
+    p(f"Conversation decision agreement: {pct(c['decision_match'])}. Tool-name sequence agreement: {pct(c['tool_name_sequence_match'])}. Required-fact check pass: {pct(c['literal_fact_pass'])}.")
+    p('Decision agreement compares the generated decision with the accepted label. Required facts and forbidden phrases use transparent string checks; these do not understand every paraphrase, date format, native-script number or negation. Citation recall checks overlap with gold evidence IDs. Tool-name sequence checks do not validate every argument. These are diagnostics, not semantic accuracy or official marks.')
+    p('The evaluator alone reads practice labels. The runtime agent reads documents, the public product catalog and verified tool results. Generated answers are saved without hand editing. Check the raw JSONL files alongside these aggregate numbers.')
+    h('Other checks')
+    p('The supplied dataset validator passed. All 16 local tests pass in a fresh dependency environment. Checks cover verification gates and retry limits, session isolation, secret redaction, calendar arithmetic, coupon rounding, ticket failure, retrieval metadata and batch continuation after an error. The synthetic failed-file case in the test log is intentional.')
+    p('Real Gnani calls completed all three demo turns: an electronics return question, a follow-up about delivery before August 2026, and a human handover. Saved traces include source IDs and a successful mock ticket result. The narrated video is under two minutes. Both customer and assistant voices are generated by Gnani and disclosed as synthetic on screen and in the narration.')
+    story.append(PageBreak());p('What I learned and how to run it','Title')
+    h('Issues found during live testing')
+    p('The first selected Gemini model was retired. The measured run uses gemini-3.1-flash-lite through its OpenAI-compatible endpoint. Some plain text replies omitted the required result fields, so JSON Schema output and an explicit formatting repair were added. Repeated tool searches are bounded, with a final answer-only generation at the end of the budget.')
+    p('Gnani returned a WAV stream with placeholder frame counts. The voice layer now rewrites the actual PCM frames into a normal WAV header, and a regression test reproduces that case. Provider 429 and 503 responses caused interrupted wider evaluation attempts. The client retries with a bounded backoff, and the evaluator reuses completed question records when resuming the same output directory.')
+    h('Limits and next improvements')
+    p('TF-IDF can miss multilingual paraphrases and short follow-ups. The offline diagnostic had 65.6% mean gold-evidence recall on the 47 questions with gold evidence; this is separate from generated-answer quality. A measured dense-embedding comparison is a useful next improvement. The complete 52-question and 23-conversation suite has not been completed in this submission.')
+    p('Policy interpretation, language quality, escalation decisions and tool arguments can still be wrong. Prompt instructions reduce those risks but do not prove correctness. Verification is an educational simulation over fictional records, not production authentication. The video is a visual walkthrough of real saved API turns with synthetic narration, not a personal voice recording or a live telephone session.')
+    h('Reproduce')
+    p('Install requirements, import the organizer dataset locally, copy .env.example to .env and add your own Gnani and Gemini credentials. No credentials or dataset copy are included. Run python -m streamlit run app.py for the interface.')
+    p('Batch audio: python run.py --input recordings --output outputs. Put one caller per folder and number clips in conversation order. Each successful turn writes text, Gnani audio, a decision, source chunks and tool events. Each customer clip must be at most 60 seconds.')
+    p('Measured sample: python evaluate.py --limit 12 --conversation-limit 2. Full suite: python evaluate.py. After a new run, review raw outputs, run python make_report.py, then python package_submission.py --team AdityaSinghal.')
+    p('Sources: supplied VoiceOps 2026 capstone brief, dataset README and DATA_DICTIONARY, current ZentroMart policy and agent-guide sections, and the official gnani-vachana SDK. Only the supplied fictional company data was used.')
     def footer(canvas,doc):
-        canvas.setStrokeColor(colors.HexColor('#d9e1e7'));canvas.line(50,43,545,43)
-        canvas.setFont('Helvetica',8);canvas.setFillColor(colors.HexColor('#65768a'))
-        canvas.drawString(50,29,'ZentroMart VoiceOps 2026 | Aditya Singhal')
-        canvas.drawRightString(545,29,f'{doc.page} / 4')
-    SimpleDocTemplate(str(ROOT/'report.pdf'),pagesize=A4,rightMargin=50,leftMargin=50,topMargin=45,bottomMargin=57).build(story,onFirstPage=footer,onLaterPages=footer)
-    print('Wrote report.pdf; render and confirm it remains at most four pages.')
-if __name__=='__main__':
-    main()
+        canvas.setFont('Helvetica',8);canvas.setFillColor(colors.HexColor('#65768a'));canvas.drawString(50,29,'ZentroMart VoiceOps | Aditya Singhal');canvas.drawRightString(545,29,f'{doc.page} / 3')
+    SimpleDocTemplate(str(ROOT/'report.pdf'),pagesize=A4,leftMargin=50,rightMargin=50,topMargin=45,bottomMargin=55).build(story,onFirstPage=footer,onLaterPages=footer)
+    print('Wrote report.pdf from measured results.')
+if __name__=='__main__':main()
