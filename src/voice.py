@@ -30,6 +30,20 @@ class Voice:
             model=os.getenv('GNANI_TTS_MODEL','timbre-v2.5'),language=language, output_file=str(path))
         if not Path(path).exists() or not Path(path).stat().st_size:
             raise RuntimeError('Gnani did not create an audio reply.')
+        # Gnani can return a streaming WAV with placeholder frame counts.
+        # Rewrite its PCM frames so duration checks and players see real length.
+        normalized = Path(path).with_suffix('.normalized.wav')
+        try:
+            with wave.open(str(path), 'rb') as source, wave.open(str(normalized), 'wb') as target:
+                target.setparams(source.getparams()._replace(nframes=0))
+                while True:
+                    frames = source.readframes(65536)
+                    if not frames:
+                        break
+                    target.writeframes(frames)
+            normalized.replace(path)
+        finally:
+            normalized.unlink(missing_ok=True)
 
     def turn(self, audio, agent, output, stt_language='en-IN', tts_language='en-IN'):
         transcript = self.transcribe(audio,stt_language)
