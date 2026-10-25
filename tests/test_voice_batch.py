@@ -20,12 +20,24 @@ class VoiceBatchTests(unittest.TestCase):
         class TTS:
             def synthesize(self,text,**kwargs):
                 self.text,self.kwargs = text,kwargs
-                Path(kwargs['output_file']).write_bytes(b'test fixture')
+                import wave
+                with wave.open(kwargs['output_file'], 'wb') as output:
+                    output.setnchannels(1)
+                    output.setsampwidth(2)
+                    output.setframerate(16000)
+                    output.writeframes(b'\x00\x00' * 1600)
+                # Simulate the streaming placeholder header returned by Gnani.
+                payload = bytearray(Path(kwargs['output_file']).read_bytes())
+                payload[40:44] = (4294967294).to_bytes(4, 'little')
+                Path(kwargs['output_file']).write_bytes(payload)
         v.tts = TTS()
         with tempfile.TemporaryDirectory() as temp:
             v.synthesize('Order 12345678',Path(temp)/'reply.wav')
             self.assertEqual(v.tts.kwargs['model'],'timbre-v2.5')
             self.assertIn('1234 5678',v.tts.text)
+            import wave
+            with wave.open(str(Path(temp)/'reply.wav')) as reply:
+                self.assertEqual(reply.getnframes(),1600)
 
     def test_batch_continues_after_failure_and_returns_nonzero(self):
         with tempfile.TemporaryDirectory() as temp:
