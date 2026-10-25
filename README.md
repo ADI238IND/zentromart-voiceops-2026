@@ -3,7 +3,7 @@ Made by **Aditya Singhal** · GitHub: **ADI238IND**
 
 A simple Python support agent with section-based RAG, conversation state, verified mock order lookup, human tickets, and Gnani-only speech.
 
-**Current status:** source implementation and 16 local tests completed. Real LLM/Gnani calls, Step 1 vs Step 2 answer scores, microphone UI verification and the personal spoken demo are pending API credentials. This project kit is **not yet a complete competition submission**. No fabricated scores or demo are included. See `SUBMIT.md`.
+**Current status:** Gemini text generation and Gnani speech generation/transcription have been tested with real API calls. The included demo uses clearly labeled Gnani-generated customer and assistant voices. Sixteen local tests pass, including normalization of Gnani streaming WAV headers. See the report for the exact live evaluation scope and measured results; these are practice diagnostics, not organizer scores.
 
 **Repository:** https://github.com/ADI238IND/zentromart-voiceops-2026 - public repository.
 
@@ -18,7 +18,7 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Fill `GNANI_API_KEY` from your own Gnani account and `LLM_API_KEY` from your chosen text-model provider. The default configuration expects an OpenAI-compatible chat API supporting tool calls and JSON mode, plus an embeddings endpoint. The default base URL is `https://api.openai.com/v1`. Use `EMBEDDING_BACKEND=api` for the main run. To use a provider without embeddings, `tfidf` works offline but retrieves multilingual paraphrases less well. Save `.env` locally; do not share it. No API key is bundled.
+Fill `GNANI_API_KEY` from your own Gnani account and `LLM_API_KEY` from your chosen text-model provider. The default configuration expects an OpenAI-compatible chat API supporting tool calls and JSON mode, plus an embeddings endpoint. The supplied configuration uses Gemini at `https://generativelanguage.googleapis.com/v1beta/openai`, model `gemini-3.1-flash-lite`, and offline TF-IDF vectors. Any compatible provider supporting tool calls and JSON Schema can be configured. Set `EMBEDDING_BACKEND=api` only when your provider supports the configured embedding model. To use a provider without embeddings, `tfidf` works offline but retrieves multilingual paraphrases less well. Save `.env` locally; do not share it. No API key is bundled.
 
 On macOS/Linux use `python3 -m venv .venv` and `.venv/bin/python` in place of the Windows Python path. Run all commands from the project root. An existing external dataset is also supported by setting `DATASET_DIR` to its absolute path in `.env`.
 
@@ -51,7 +51,7 @@ Language options: `--stt-language hi-IN --tts-language hi-IN`. API failures cann
 .\.venv\Scripts\python.exe make_report.py
 ```
 
-The first evaluation is an offline TF-IDF diagnostic only. The live run calls the same LLM on all 52 questions in Step 1 (prompt only) and Step 2 (RAG), then processes all 96 turns in 23 conversations with reset state between callers. `--asr --output asr_results` evaluates the supplied ASR-like text separately. The practice labels are used only by the evaluator, never read by the agent. See `sample_outputs/live_scores.json` after a complete live run. API calls consume your account quota.
+The first evaluation is an offline TF-IDF diagnostic only. By default the live run tests all 52 questions in Step 1 (prompt only) and Step 2 (RAG), then all 96 turns in 23 conversations. The submitted measured run uses the first 12 questions and first two conversations, selected before looking at their scores, because of provider rate limits. Reproduce it with `python evaluate.py --limit 12 --conversation-limit 2`. All remaining cases can be run with the default command. State resets between callers. Completed question records are reused when resuming the same output directory. `--asr --output asr_results` evaluates the supplied ASR-like text separately. The practice labels are used only by the evaluator, never read by the agent. See `sample_outputs/live_scores.json` after a complete live run. API calls consume your account quota.
 
 Metrics are decision agreement, literal fact checks, forbidden-phrase checks, citation recall and conversation tool-name sequence agreement. Literal matching is a diagnostic, not semantic accuracy: native-script numbers, date formats, paraphrases and negations need manual review. It does not verify all tool arguments. Do not submit these as organizer scores. Preserve raw generated outputs; never type or edit test answers by hand.
 
@@ -72,10 +72,10 @@ The public repository contains this implementation, tests, report and submission
 
 ## Finish and package
 
-Follow `SUBMIT.md`, add your real <=2-minute `demo.mp4`, run live evaluation, update this README with the actual repository URL, regenerate the <=4-page report, copy genuine successful audio outputs into `sample_outputs/audio/`, then run:
+The package includes a Gnani-narrated demonstration, real API audio outputs and a report with measured sample results. To rebuild it after any further evaluation, run `python make_report.py`, review the results, then run:
 
 ```powershell
 .\.venv\Scripts\python.exe package_submission.py --team AdityaSinghal
 ```
 
-The packager refuses missing live scores, demo, repository URL or successful audio samples. It excludes dataset copies, environment secrets, recordings, caches and virtual environments. Review the resulting ZIP before submitting. `docs/DEMO.md` is a recording plan, not a completed demo.
+The packager refuses missing live scores, demo, repository URL or successful audio samples. It excludes dataset copies, environment secrets, recordings, caches and virtual environments. Review the resulting ZIP before submitting. The demonstration uses synthetic voices, visibly disclosed in the video; it is not a personal voice recording or a real phone call.
