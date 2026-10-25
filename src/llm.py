@@ -18,17 +18,17 @@ class API:
     def post(self, route, payload):
         req = Request(self.base + route, data=json.dumps(payload).encode(), headers={
             'Authorization': 'Bearer ' + self.key, 'Content-Type': 'application/json'})
-        for attempt in range(3):
+        for attempt in range(6):
             try:
-                with urlopen(req, timeout=90) as response:
+                with urlopen(req, timeout=30) as response:
                     return json.load(response)
             except HTTPError as exc:
-                if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                if exc.code not in (429, 500, 502, 503, 504) or attempt == 5:
                     raise RuntimeError(f'LLM API returned HTTP {exc.code}; check configuration/quota.') from None
             except (URLError, TimeoutError):
-                if attempt == 2:
+                if attempt == 5:
                     raise RuntimeError('LLM API connection failed; retry after checking network.') from None
-            time.sleep(2 ** attempt)
+            time.sleep(min(30, max(15, 2 ** attempt)))
 
     def chat(self, messages, tools=None, json_mode=False):
         payload = {'model': self.model, 'messages': messages, 'temperature': 0}
@@ -36,7 +36,7 @@ class API:
             payload['tools'] = tools
             payload['tool_choice'] = 'auto'
         if json_mode:
-            payload['response_format'] = {'type': 'json_object'}
+            payload['response_format'] = {'type': 'json_schema', 'json_schema': {'name':'support_reply','strict':True,'schema':{'type':'object','properties':{'answer':{'type':'string'},'decision':{'type':'string','enum':['answer','clarify','refuse','escalate']},'evidence':{'type':'array','items':{'type':'string'}},'intent':{'type':'string'}},'required':['answer','decision','evidence','intent'],'additionalProperties':False}}}
         return self.post('/chat/completions', payload)['choices'][0]['message']
 
     def embed(self, texts):
