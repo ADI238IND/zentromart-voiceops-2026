@@ -45,12 +45,16 @@ def means(records):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--offline-retrieval',action='store_true',help='No LLM calls; TF-IDF diagnostic only, NOT Step 1/2 answer scores.')
+    p.add_argument('--limit',type=int,default=0,help='Evaluate the first N questions; zero means all.')
+    p.add_argument('--conversation-limit',type=int,default=0,help='Evaluate the first N conversations; zero means all.')
     p.add_argument('--asr',action='store_true',help='Use asr_text instead of typed questions')
     p.add_argument('--output',type=Path,default=Path('sample_outputs'))
     a = p.parse_args()
     data = dataset_path()
     a.output.mkdir(parents=True,exist_ok=True)
     questions = rows(data/'practice/questions.csv')
+    if a.limit:
+        questions = questions[:a.limit]
     if a.offline_retrieval:
         index = Index(data,backend='tfidf')
         records = []
@@ -68,23 +72,35 @@ def main():
         return
     api = API()
     index = Index(data,api)
-    summary = {'mode':'live LLM practice evaluation','question_count':len(questions),'metrics_note':'Literal fact/forbidden checks are approximate; manually review semantic equivalence, dates, native language, and negation. Not organizer scores.'}
+    summary = {'mode':'live LLM practice evaluation','question_count':len(questions),'scope_note':f'First {len(questions)} of 52 questions; conversation limit {a.conversation_limit or 23} of 23. Deterministic file order; no answer-based selection.','metrics_note':'Literal fact/forbidden checks are approximate; manually review semantic equivalence, dates, native language, and negation. Not organizer scores.'}
     for mode in ('step1','step2'):
         output = []
         path = a.output/(mode+'.jsonl')
+        existing = {}
+        if path.exists():
+            for line in path.read_text(encoding='utf-8').splitlines():
+                record = json.loads(line)
+                existing[record['id']] = record
         with path.open('w',encoding='utf-8') as f:
             for q in questions:
-                agent = Agent(data,index,api,baseline=mode=='step1')
-                result = agent.respond(q['asr_text'] if a.asr else q['question'])
-                record = {'id':q['id'],'result':result,'score':score(q,result)}
+                if q['id'] in existing:
+                    record = existing[q['id']]
+                else:
+                    agent = Agent(data,index,api,baseline=mode=='step1')
+                    result = agent.respond(q['asr_text'] if a.asr else q['question'])
+                    record = {'id':q['id'],'result':result,'score':score(q,result)}
                 output.append(record)
                 f.write(json.dumps(record,ensure_ascii=False)+'\n')
                 f.flush()
+                print(mode,len(output),'/',len(questions),flush=True)
         summary[mode] = means(output)
     output = []
     agent = None
     current = None
     conversation_rows = sorted(rows(data/'practice/conversations.csv'),key=lambda r:(r['conversation_id'],int(r['turn'])))
+    if a.conversation_limit:
+        ids = list(dict.fromkeys(q['conversation_id'] for q in conversation_rows))[:a.conversation_limit]
+        conversation_rows = [q for q in conversation_rows if q['conversation_id'] in ids]
     with (a.output/'conversations.jsonl').open('w',encoding='utf-8') as f:
         for q in conversation_rows:
             if q['conversation_id'] != current:
@@ -98,6 +114,7 @@ def main():
             output.append(record)
             f.write(json.dumps(record,ensure_ascii=False)+'\n')
             f.flush()
+            print('conversation',current,q['turn'],flush=True)
     summary['conversations'] = means(output)
     summary['conversations']['tool_name_sequence_match'] = sum(r['tool_name_sequence_match'] for r in output)/len(output)
     (a.output/'live_scores.json').write_text(json.dumps(summary,indent=2))
